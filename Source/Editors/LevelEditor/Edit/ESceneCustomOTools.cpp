@@ -351,13 +351,10 @@ void setEditable(PropItemVec& items, u32 start_idx, bool bEditableTool, bool bOb
 
 void ESceneCustomOTool::FillProp(LPCSTR pref, PropItemVec& items)
 {
-    int Size = 0;
     for (ObjectIt it=m_Objects.begin(); it!=m_Objects.end(); it++)  
     {
-        if ((*it)->Selected() && Size <= 1)
+        if ((*it)->Selected())
         {
-            Size++;
-        	
             u32 cnt = items.size();
             (*it)->FillProp	(PrepareKey(pref,"Items").c_str(), items);
 
