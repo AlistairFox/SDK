@@ -127,6 +127,11 @@ public:
             u32		m_EM_HemiColor;
             u32     m_EM_SunColor;
 
+            float   m_EM_lowlandFogDens;
+            float   m_EM_lowlandFogHeight;
+            float   m_EM_lowlandFogBaseHeight;
+            float   m_EM_rain_dens;
+
             Flags16	m_EM_Flags;
         };
     };

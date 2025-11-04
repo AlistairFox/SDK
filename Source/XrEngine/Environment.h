@@ -44,6 +44,10 @@ public:
 	Fvector3			sky_color;		
 	Fvector3			hemi_color;
 	Fvector3			sun_color;
+	float				m_EM_lowlandFogDens;
+	float				m_EM_lowlandFogHeight;
+	float				m_EM_lowlandFogBaseHeight;
+	float				m_EM_rain_dens;
 
 	Flags16				use_flags;
 
