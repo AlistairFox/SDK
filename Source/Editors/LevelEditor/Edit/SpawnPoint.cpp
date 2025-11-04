@@ -684,6 +684,11 @@ void CSpawnPoint::Construct(LPVOID data)
             m_EM_SkyColor		= 0x00FFFFFF;
             m_EM_HemiColor		= 0x00FFFFFF;
             m_EM_SunColor       = 0x00FFFFFF;
+
+            m_EM_lowlandFogDens = 1.f;
+            m_EM_lowlandFogHeight = 1.f;
+            m_EM_lowlandFogBaseHeight = 1.f;
+            m_EM_rain_dens = 1.f;
         }else{
             CreateSpawnData(LPCSTR(data));
             if (!m_SpawnData.Valid())
@@ -1172,6 +1177,11 @@ bool CSpawnPoint::LoadLTX(CInifile& ini, LPCSTR sect_name)
             	m_EM_Flags.assign	(ini.r_u16(sect_name, "em_flags"));
             if (version >= 0x0018)
                 m_EM_SunColor		= ini.r_u32(sect_name, "sun_color");
+
+            m_EM_lowlandFogDens = ini.r_float(sect_name, "lowland_fog_density");
+            m_EM_lowlandFogHeight = ini.r_float(sect_name, "lowland_fog_height");
+            m_EM_lowlandFogBaseHeight = ini.r_float(sect_name, "lowland_fog_base_height");
+            m_EM_rain_dens = ini.r_float(sect_name, "rain_density");
         }
     break;
     default: THROW;
@@ -1231,9 +1241,15 @@ void CSpawnPoint::SaveLTX(CInifile& ini, LPCSTR sect_name)
         ini.w_u32		(sect_name, "ambient_color", m_EM_AmbientColor);
         ini.w_u32		(sect_name, "sky_color", m_EM_SkyColor);
         ini.w_u32		(sect_name, "hemi_color", m_EM_HemiColor);
+
         ini.w_u16		(sect_name, "em_flags", m_EM_Flags.get());
 
         ini.w_u32       (sect_name, "sun_color", m_EM_SunColor);
+
+        ini.w_float(sect_name,"lowland_fog_density", m_EM_lowlandFogDens);
+        ini.w_float(sect_name,"lowland_fog_height", m_EM_lowlandFogHeight);
+        ini.w_float(sect_name,"lowland_fog_base_height", m_EM_lowlandFogBaseHeight);
+        ini.w_float(sect_name,"rain_density", m_EM_rain_dens);
     }break;
 
     default: THROW;
@@ -1290,8 +1306,15 @@ bool CSpawnPoint::LoadStream(IReader& F)
                 m_EM_FogDensity		= F.r_float();
                 m_EM_AmbientColor	= F.r_u32();
                 m_EM_SkyColor		= F.r_u32();
+
+                m_EM_lowlandFogDens = F.r_float();
+                m_EM_lowlandFogHeight = F.r_float();
+                m_EM_lowlandFogBaseHeight = F.r_float();
+                m_EM_rain_dens = F.r_float();
+
                 if (F.find_chunk(SPAWNPOINT_CHUNK_ENVMOD2))
                     m_EM_HemiColor	= F.r_u32();
+
                 if (F.find_chunk(SPAWNPOINT_CHUNK_ENVMOD3))
                     m_EM_Flags.assign(F.r_u16());
                 if (F.find_chunk(SPAWNPOINT_CHUNK_ENVMOD4))
@@ -1352,6 +1375,10 @@ void CSpawnPoint::SaveStream(IWriter& F)
             F.w_float	(m_EM_FogDensity);
         	F.w_u32		(m_EM_AmbientColor);
             F.w_u32		(m_EM_SkyColor);
+            F.w_float(m_EM_lowlandFogDens);
+            F.w_float(m_EM_lowlandFogHeight);
+            F.w_float(m_EM_lowlandFogBaseHeight);
+            F.w_float(m_EM_rain_dens);
             F.close_chunk();
         	
             F.open_chunk(SPAWNPOINT_CHUNK_ENVMOD2);
@@ -1417,7 +1444,14 @@ bool CSpawnPoint::ExportGame(SExportStreams* F)
             F->envmodif.stream.w_float	(m_EM_FogDensity);
             F->envmodif.stream.w_fvector3(u32_3f(m_EM_AmbientColor));
             F->envmodif.stream.w_fvector3(u32_3f(m_EM_SkyColor));
+
+            F->envmodif.stream.w_float(m_EM_lowlandFogDens);
+            F->envmodif.stream.w_float(m_EM_lowlandFogHeight);
+            F->envmodif.stream.w_float(m_EM_lowlandFogBaseHeight);
+            F->envmodif.stream.w_float(m_EM_rain_dens);
+
             F->envmodif.stream.w_fvector3(u32_3f(m_EM_HemiColor));
+
             F->envmodif.stream.w_u16(m_EM_Flags.get());
             F->envmodif.stream.w_fvector3(u32_3f(m_EM_SunColor));
 
@@ -1580,6 +1614,26 @@ void CSpawnPoint::FillProp(LPCSTR pref, PropItemVec& items)
             FV->OnChangeEvent.bind	 (this,&CSpawnPoint::OnEnvModFlagChange);
             if(m_EM_Flags.test(eSunColor))
         		PHelper().CreateColor	(items, PrepareKey(pref,"Environment Modificator\\Sun Color\\ "), 	&m_EM_SunColor);
+
+            FV = PHelper().CreateFlag16(items, PrepareKey(pref, "Environment Modificator\\Lowland Fog Density"), &m_EM_Flags, eLLFogDens);
+            FV->OnChangeEvent.bind(this, &CSpawnPoint::OnEnvModFlagChange);
+            if (m_EM_Flags.test(eLLFogDens))
+                PHelper().CreateFloat(items, PrepareKey(pref, "Environment Modificator\\Lowland Fog Density\\ "), &m_EM_lowlandFogDens, -1000, 1000, 1, 1);
+
+            FV = PHelper().CreateFlag16(items, PrepareKey(pref, "Environment Modificator\\Lowland Fog Height"), &m_EM_Flags, eLLFogHeight);
+            FV->OnChangeEvent.bind(this, &CSpawnPoint::OnEnvModFlagChange);
+            if (m_EM_Flags.test(eLLFogHeight))
+                PHelper().CreateFloat(items, PrepareKey(pref, "Environment Modificator\\Lowland Fog Height\\ "), &m_EM_lowlandFogHeight, -1000, 1000, 1, 1);
+
+            FV = PHelper().CreateFlag16(items, PrepareKey(pref, "Environment Modificator\\Lowland Fog Base Height"), &m_EM_Flags, eLLFogBaseHeight);
+            FV->OnChangeEvent.bind(this, &CSpawnPoint::OnEnvModFlagChange);
+            if (m_EM_Flags.test(eLLFogBaseHeight))
+                PHelper().CreateFloat(items, PrepareKey(pref, "Environment Modificator\\Lowland Fog Base Height\\ "), &m_EM_lowlandFogBaseHeight, -1000, 1000, 1, 1);
+
+            FV = PHelper().CreateFlag16(items, PrepareKey(pref, "Environment Modificator\\Rain Density"), &m_EM_Flags, eRainDens);
+            FV->OnChangeEvent.bind(this, &CSpawnPoint::OnEnvModFlagChange);
+            if (m_EM_Flags.test(eRainDens))
+                PHelper().CreateFloat(items, PrepareKey(pref, "Environment Modificator\\Rain Density\\ "), &m_EM_rain_dens, -1000, 1000, 1, 1);
         }break;
         default: THROW;
         }
